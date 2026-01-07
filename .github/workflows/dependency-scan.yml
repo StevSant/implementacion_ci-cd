@@ -1,0 +1,100 @@
+# Workflow 2: Escaneo de Dependencias
+name: 📦 Dependency Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  pip-audit:
+    name: 🔍 pip-audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Instalar dependencias
+        run: |
+          pip install uv pip-audit
+          uv pip install --system -r pyproject.toml || pip install fastapi uvicorn pydantic pydantic-settings requests==2.25.1 pyyaml==5.4 jinja2==2.11.3
+
+      - name: 🔍 Ejecutar pip-audit
+        continue-on-error: true
+        run: |
+          echo "## 📦 Resultados de pip-audit" >> $GITHUB_STEP_SUMMARY
+          pip-audit --format json --output pip-audit-report.json || true
+          pip-audit >> $GITHUB_STEP_SUMMARY || true
+
+      - name: 📊 Subir reporte
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pip-audit-report
+          path: pip-audit-report.json
+
+  safety:
+    name: 🛡️ Safety Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Instalar dependencias
+        run: |
+          pip install uv safety
+          uv pip install --system -r pyproject.toml || pip install fastapi uvicorn pydantic pydantic-settings requests==2.25.1 pyyaml==5.4 jinja2==2.11.3
+
+      - name: 🛡️ Ejecutar Safety
+        continue-on-error: true
+        run: |
+          echo "## 🛡️ Resultados de Safety" >> $GITHUB_STEP_SUMMARY
+          safety check --json --output safety-report.json || true
+          safety check >> $GITHUB_STEP_SUMMARY || true
+
+      - name: 📊 Subir reporte
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: safety-report
+          path: safety-report.json
+
+  owasp:
+    name: 🔒 OWASP Dependency-Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🔒 OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        continue-on-error: true
+        with:
+          project: 'devsecops-demo'
+          path: '.'
+          format: 'HTML,JSON'
+          args: --enableExperimental
+
+      - name: 📊 Subir reporte OWASP
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: owasp-report
+          path: reports/

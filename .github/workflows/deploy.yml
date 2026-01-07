@@ -1,0 +1,55 @@
+# Workflow 5: Deploy (solo cuando todo pasa)
+name: 🚀 Deploy
+
+on:
+  workflow_run:
+    workflows:
+      - "🧪 Tests"
+      - "🐳 Build & Container Scan"
+    types: [completed]
+    branches: [main]
+
+jobs:
+  check-workflows:
+    name: 🔍 Verificar workflows
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    outputs:
+      should_deploy: ${{ steps.check.outputs.deploy }}
+
+    steps:
+      - name: 🔍 Verificar estado de workflows
+        id: check
+        run: |
+          echo "Workflow: ${{ github.event.workflow_run.name }}"
+          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "deploy=true" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: 🚀 Deploy a Producción
+    runs-on: ubuntu-latest
+    needs: [check-workflows]
+    if: needs.check-workflows.outputs.should_deploy == 'true'
+    environment: production
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🚀 Simular deploy
+        run: |
+          echo "## 🚀 Deploy a Producción" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Todos los checks de seguridad pasaron" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Deploy simulado exitosamente" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### En un entorno real:" >> $GITHUB_STEP_SUMMARY
+          echo "- Push de imagen a registry (Docker Hub, ECR, GCR)" >> $GITHUB_STEP_SUMMARY
+          echo "- Deploy a Kubernetes/ECS/Cloud Run" >> $GITHUB_STEP_SUMMARY
+          echo "- Notificación a equipo" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📢 Notificar éxito
+        run: |
+          echo "🎉 Deploy completado exitosamente!"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"

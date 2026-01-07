@@ -1,0 +1,72 @@
+# Workflow 1: SAST - Análisis Estático de Seguridad
+name: 🔍 SAST
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  bandit:
+    name: 🔐 Bandit - Python Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Instalar Bandit
+        run: pip install bandit
+
+      - name: 🔐 Ejecutar Bandit
+        continue-on-error: true
+        run: |
+          echo "## 🔐 Resultados de Bandit" >> $GITHUB_STEP_SUMMARY
+          bandit -r app/ -f json -o bandit-report.json || true
+          bandit -r app/ -f txt >> $GITHUB_STEP_SUMMARY || true
+
+      - name: 📊 Subir reporte Bandit
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+      - name: ❌ Verificar vulnerabilidades HIGH
+        run: |
+          HIGH_COUNT=$(cat bandit-report.json | python -c "import sys,json; data=json.load(sys.stdin); print(len([r for r in data.get('results',[]) if r['issue_severity']=='HIGH']))" 2>/dev/null || echo "0")
+          echo "Vulnerabilidades HIGH: $HIGH_COUNT"
+          if [ "$HIGH_COUNT" -gt 0 ]; then
+            echo "::warning::Se encontraron $HIGH_COUNT vulnerabilidades HIGH en el código"
+          fi
+
+  codeql:
+    name: 🔬 CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🔬 Inicializar CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+          queries: security-extended
+
+      - name: 🔬 Ejecutar análisis CodeQL
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:python"

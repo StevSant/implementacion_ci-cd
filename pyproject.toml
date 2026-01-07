@@ -1,0 +1,43 @@
+[project]
+name = "devsecops-demo-api"
+version = "1.0.0"
+description = "API de demostración para integración de gestión de vulnerabilidades en CI/CD"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    # ⚠️ DEPENDENCIAS VULNERABLES INTENCIONALES (para demostración)
+    # requests 2.25.1 tiene CVE-2023-32681 (CRITICAL)
+    "requests==2.25.1",
+    # PyYAML 5.4 tiene CVE-2020-14343 (CRITICAL)
+    "pyyaml==5.4",
+    # Jinja2 2.11.3 tiene CVE-2024-22195 (MEDIUM)
+    "jinja2==2.11.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "httpx>=0.26.0",
+    "black>=23.12.0",
+    "ruff>=0.1.9",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = "-v --tb=short"
+
+[tool.black]
+line-length = 100
+target-version = ["py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I", "S"]
+ignore = ["S101"]  # Permitir assert en tests

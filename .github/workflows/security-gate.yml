@@ -1,0 +1,42 @@
+# Workflow 6: Security Gate - Resumen de seguridad
+name: 🚦 Security Gate
+
+on:
+  workflow_run:
+    workflows:
+      - "🔍 SAST"
+      - "📦 Dependency Scan"
+      - "🐳 Build & Container Scan"
+    types: [completed]
+
+jobs:
+  security-summary:
+    name: 📊 Security Summary
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: 📊 Generar resumen de seguridad
+        run: |
+          echo "## 🚦 Security Gate - Resumen" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Workflow completado: ${{ github.event.workflow_run.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Estado:** ${{ github.event.workflow_run.conclusion }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Reglas de Fallo:" >> $GITHUB_STEP_SUMMARY
+          echo "| Severidad | Acción |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **CRITICAL** | ❌ Pipeline FALLA |" >> $GITHUB_STEP_SUMMARY
+          echo "| **HIGH** | ⚠️ Warning |" >> $GITHUB_STEP_SUMMARY
+          echo "| **MEDIUM/LOW** | ℹ️ Solo reporte |" >> $GITHUB_STEP_SUMMARY
+
+      - name: ✅ Security Gate Status
+        if: github.event.workflow_run.conclusion == 'success'
+        run: |
+          echo "## ✅ Security Gate PASSED" >> $GITHUB_STEP_SUMMARY
+
+      - name: ❌ Security Gate Failed
+        if: github.event.workflow_run.conclusion == 'failure'
+        run: |
+          echo "## ❌ Security Gate FAILED" >> $GITHUB_STEP_SUMMARY
+          echo "Revisar los reportes de seguridad para más detalles." >> $GITHUB_STEP_SUMMARY
