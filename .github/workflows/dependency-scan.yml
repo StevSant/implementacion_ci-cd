@@ -27,7 +27,7 @@ jobs:
       - name: 📦 Instalar dependencias
         run: |
           pip install uv pip-audit
-          uv pip install --system -r pyproject.toml || pip install fastapi uvicorn pydantic pydantic-settings requests==2.25.1 pyyaml==5.4 jinja2==2.11.3
+          uv sync
 
       - name: 🔍 Ejecutar pip-audit
         continue-on-error: true
@@ -59,7 +59,7 @@ jobs:
       - name: 📦 Instalar dependencias
         run: |
           pip install uv safety
-          uv pip install --system -r pyproject.toml || pip install fastapi uvicorn pydantic pydantic-settings requests==2.25.1 pyyaml==5.4 jinja2==2.11.3
+          uv sync
 
       - name: 🛡️ Ejecutar Safety
         continue-on-error: true

@@ -6,16 +6,15 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.109.0",
-    "uvicorn[standard]>=0.27.0",
-    "pydantic>=2.5.0",
+    "uvicorn>=0.27.0",
+    "pydantic[email]>=2.5.0",
     "pydantic-settings>=2.1.0",
-    # ⚠️ DEPENDENCIAS VULNERABLES INTENCIONALES (para demostración)
-    # requests 2.25.1 tiene CVE-2023-32681 (CRITICAL)
-    "requests==2.25.1",
-    # PyYAML 5.4 tiene CVE-2020-14343 (CRITICAL)
-    "pyyaml==5.4",
-    # Jinja2 2.11.3 tiene CVE-2024-22195 (MEDIUM)
-    "jinja2==2.11.3",
+    "httpx>=0.25.0",
+    # ⚠️ NOTA: Las vulnerabilidades serán detectadas por:
+    # 1. Código vulnerable (SQL Injection, deserialización) → SAST (Bandit/CodeQL)
+    # 2. Dependencias transitivas → pip-audit, Safety
+    # 3. Imagen Docker → Trivy (vulnerabilidades del SO)
+    "email-validator>=2.3.0",
 ]
 
 [project.optional-dependencies]

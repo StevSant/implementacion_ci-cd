@@ -20,13 +20,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar archivos de dependencias
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock ./
 
 # Instalar uv para gestión de dependencias
 RUN pip install uv
 
 # Instalar dependencias
-RUN uv pip install --system -r pyproject.toml || pip install fastapi uvicorn pydantic pydantic-settings requests==2.25.1 pyyaml==5.4
+RUN uv sync --frozen --no-dev
 
 # Copiar código de la aplicación
 COPY app/ ./app/

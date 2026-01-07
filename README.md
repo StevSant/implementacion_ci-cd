@@ -94,11 +94,20 @@ Los pipelines se activan en `push` y `pull_request` a `main`. Están separados e
 
 ## 🎯 Vulnerabilidades Intencionales (Demo)
 
-### Dependencias Vulnerables
+### Código Vulnerable (detectado por SAST)
 
-- `requests==2.25.1` → CVE-2023-32681
-- `pyyaml==5.4` → CVE-2020-14343
-- `jinja2==2.11.3` → CVE-2024-22195
+- `GET /users/search/vulnerable` → **SQL Injection** (Bandit B608)
+- `POST /products/import/vulnerable` → **Deserialización insegura** (Bandit B301)
+
+### Fuentes de Vulnerabilidades en Pipeline
+
+| Herramienta | Qué detecta |
+|-------------|-------------|
+| **Bandit** | SQL Injection, pickle, hardcoded passwords |
+| **CodeQL** | Vulnerabilidades semánticas en código |
+| **pip-audit** | CVEs en dependencias transitivas |
+| **Safety** | Vulnerabilidades conocidas en paquetes |
+| **Trivy** | Vulnerabilidades en imagen Docker (OS + libs) |
 
 ### Código Vulnerable
 
