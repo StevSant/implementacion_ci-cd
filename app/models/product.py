@@ -1,37 +1,19 @@
 """
-Modelos de producto.
+Modelo SQLAlchemy de Producto.
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
-from decimal import Decimal
+from sqlalchemy import Column, Integer, String, Float, Text
+
+from .base import Base
 
 
-class ProductBase(BaseModel):
-    """Modelo base de producto."""
+class Product(Base):
+    """Modelo de producto en la base de datos."""
 
-    name: str = Field(..., min_length=1, max_length=200)
-    description: Optional[str] = None
-    price: Decimal = Field(..., ge=0, decimal_places=2)
-    stock: int = Field(default=0, ge=0)
+    __tablename__ = "products"
 
-
-class ProductCreate(ProductBase):
-    """Modelo para crear producto."""
-
-    pass
-
-
-class Product(ProductBase):
-    """Modelo de producto completo."""
-
-    id: int
-
-    class Config:
-        from_attributes = True
-
-
-class ProductResponse(ProductBase):
-    """Respuesta de producto."""
-
-    id: int
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    price = Column(Float, nullable=False)
+    stock = Column(Integer, default=0)

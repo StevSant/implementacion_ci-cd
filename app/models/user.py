@@ -1,38 +1,19 @@
 """
-Modelos de usuario.
+Modelo SQLAlchemy de Usuario.
 """
 
-from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from sqlalchemy import Column, Integer, String, Boolean
+
+from .base import Base
 
 
-class UserBase(BaseModel):
-    """Modelo base de usuario."""
+class User(Base):
+    """Modelo de usuario en la base de datos."""
 
-    email: EmailStr
-    name: str = Field(..., min_length=1, max_length=100)
-    is_active: bool = True
+    __tablename__ = "users"
 
-
-class UserCreate(UserBase):
-    """Modelo para crear usuario."""
-
-    password: str = Field(..., min_length=6)
-
-
-class User(UserBase):
-    """Modelo de usuario completo."""
-
-    id: int
-
-    class Config:
-        from_attributes = True
-
-
-class UserResponse(BaseModel):
-    """Respuesta de usuario (sin datos sensibles)."""
-
-    id: int
-    email: EmailStr
-    name: str
-    is_active: bool
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    name = Column(String(100), nullable=False)
+    password = Column(String(255), nullable=False)
+    is_active = Column(Boolean, default=True)

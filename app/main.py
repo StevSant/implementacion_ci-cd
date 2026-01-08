@@ -2,12 +2,24 @@
 Punto de entrada principal de la aplicación FastAPI.
 """
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
 from .config import settings
+from .database import engine
+from .models import Base
 from .routers import users_router, products_router, health_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Inicializa la base de datos al arrancar la aplicación."""
+    # Crear todas las tablas
+    Base.metadata.create_all(bind=engine)
+    yield
 
 
 def create_application() -> FastAPI:
@@ -20,6 +32,7 @@ def create_application() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
+        lifespan=lifespan,
     )
 
     # Configurar CORS

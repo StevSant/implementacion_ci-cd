@@ -1,8 +1,9 @@
 """
-Modelos de datos de la aplicación.
+Modelos SQLAlchemy de la aplicación.
 """
 
-from .user import User, UserCreate, UserResponse
-from .product import Product, ProductCreate, ProductResponse
+from .base import Base
+from .user import User
+from .product import Product
 
-__all__ = ["User", "UserCreate", "UserResponse", "Product", "ProductCreate", "ProductResponse"]
+__all__ = ["Base", "User", "Product"]

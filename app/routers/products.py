@@ -2,37 +2,15 @@
 Endpoints de productos.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from sqlalchemy.orm import Session
 from typing import List, Optional
-from decimal import Decimal
-from ..models.product import ProductCreate, ProductResponse
+
+from ..database import get_db
+from ..models.product import Product
+from ..schemas.product import ProductCreate, ProductResponse
 
 router = APIRouter(prefix="/products", tags=["Products"])
-
-# Simulación de base de datos en memoria
-fake_products_db: List[dict] = [
-    {
-        "id": 1,
-        "name": "Laptop",
-        "description": "Laptop gaming",
-        "price": Decimal("999.99"),
-        "stock": 10,
-    },
-    {
-        "id": 2,
-        "name": "Mouse",
-        "description": "Mouse ergonómico",
-        "price": Decimal("29.99"),
-        "stock": 50,
-    },
-    {
-        "id": 3,
-        "name": "Teclado",
-        "description": "Teclado mecánico",
-        "price": Decimal("79.99"),
-        "stock": 30,
-    },
-]
 
 
 @router.get(
@@ -41,20 +19,22 @@ fake_products_db: List[dict] = [
     summary="Listar productos",
     description="Obtiene la lista de todos los productos disponibles.",
 )
-async def get_products(
+def get_products(
     skip: int = Query(0, ge=0, description="Número de registros a saltar"),
     limit: int = Query(10, ge=1, le=100, description="Límite de registros"),
-    min_price: Optional[Decimal] = Query(None, ge=0, description="Precio mínimo"),
-    max_price: Optional[Decimal] = Query(None, ge=0, description="Precio máximo"),
+    min_price: Optional[float] = Query(None, ge=0, description="Precio mínimo"),
+    max_price: Optional[float] = Query(None, ge=0, description="Precio máximo"),
+    db: Session = Depends(get_db),
 ):
     """Obtiene todos los productos con filtros opcionales."""
-    products = fake_products_db[skip : skip + limit]
+    query = db.query(Product)
 
     if min_price is not None:
-        products = [p for p in products if p["price"] >= min_price]
+        query = query.filter(Product.price >= min_price)
     if max_price is not None:
-        products = [p for p in products if p["price"] <= max_price]
+        query = query.filter(Product.price <= max_price)
 
+    products = query.offset(skip).limit(limit).all()
     return products
 
 
@@ -64,12 +44,12 @@ async def get_products(
     summary="Obtener producto",
     description="Obtiene un producto específico por su ID.",
 )
-async def get_product(product_id: int):
+def get_product(product_id: int, db: Session = Depends(get_db)):
     """Obtiene un producto por ID."""
-    for product in fake_products_db:
-        if product["id"] == product_id:
-            return product
-    raise HTTPException(status_code=404, detail="Producto no encontrado")
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    return product
 
 
 @router.post(
@@ -79,18 +59,18 @@ async def get_product(product_id: int):
     summary="Crear producto",
     description="Crea un nuevo producto en el inventario.",
 )
-async def create_product(product: ProductCreate):
+def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     """Crea un nuevo producto."""
-    new_id = max([p["id"] for p in fake_products_db], default=0) + 1
-    new_product = {
-        "id": new_id,
-        "name": product.name,
-        "description": product.description,
-        "price": product.price,
-        "stock": product.stock,
-    }
-    fake_products_db.append(new_product)
-    return new_product
+    db_product = Product(
+        name=product.name,
+        description=product.description,
+        price=product.price,
+        stock=product.stock,
+    )
+    db.add(db_product)
+    db.commit()
+    db.refresh(db_product)
+    return db_product
 
 
 @router.put(
@@ -99,20 +79,24 @@ async def create_product(product: ProductCreate):
     summary="Actualizar producto",
     description="Actualiza un producto existente.",
 )
-async def update_product(product_id: int, product: ProductCreate):
+def update_product(
+    product_id: int,
+    product: ProductCreate,
+    db: Session = Depends(get_db),
+):
     """Actualiza un producto existente."""
-    for i, p in enumerate(fake_products_db):
-        if p["id"] == product_id:
-            updated = {
-                "id": product_id,
-                "name": product.name,
-                "description": product.description,
-                "price": product.price,
-                "stock": product.stock,
-            }
-            fake_products_db[i] = updated
-            return updated
-    raise HTTPException(status_code=404, detail="Producto no encontrado")
+    db_product = db.query(Product).filter(Product.id == product_id).first()
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    db_product.name = product.name
+    db_product.description = product.description
+    db_product.price = product.price
+    db_product.stock = product.stock
+
+    db.commit()
+    db.refresh(db_product)
+    return db_product
 
 
 @router.delete(
@@ -121,14 +105,15 @@ async def update_product(product_id: int, product: ProductCreate):
     summary="Eliminar producto",
     description="Elimina un producto del inventario.",
 )
-async def delete_product(product_id: int):
+def delete_product(product_id: int, db: Session = Depends(get_db)):
     """Elimina un producto por ID."""
-    global fake_products_db
-    for i, product in enumerate(fake_products_db):
-        if product["id"] == product_id:
-            fake_products_db.pop(i)
-            return
-    raise HTTPException(status_code=404, detail="Producto no encontrado")
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    db.delete(product)
+    db.commit()
+    return None
 
 
 # ⚠️ VULNERABILIDAD INTENCIONAL: Deserialización insegura
@@ -137,7 +122,7 @@ async def delete_product(product_id: int):
     summary="Importar datos (DEMO VULNERABLE)",
     description="⚠️ VULNERABLE: Este endpoint usa pickle para demostración de vulnerabilidades.",
 )
-async def import_products_vulnerable(data: str):
+def import_products_vulnerable(data: str):
     """
     ⚠️ ENDPOINT VULNERABLE - Solo para demostración.
 

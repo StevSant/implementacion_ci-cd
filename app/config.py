@@ -2,11 +2,13 @@
 Configuración de la aplicación.
 """
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Configuración de la aplicación."""
+
+    model_config = SettingsConfigDict(env_file=".env")
 
     APP_NAME: str = "Vulnerability Management Demo API"
     APP_VERSION: str = "1.0.0"
@@ -27,9 +29,6 @@ class Settings(BaseSettings):
     """
     DEBUG: bool = False
     DATABASE_URL: str = "sqlite:///./demo.db"
-
-    class Config:
-        env_file = ".env"
 
 
 settings = Settings()
